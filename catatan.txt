@@ -1,0 +1,110 @@
+basic class :
+
+terdapat 3 point Utama le 
+
+1. fitur1 :pengertian (berisi pengertian , struktur ,dan tata Bahasa )"
+
+2. fitur2 : example
+
+3. fitur3 : quiz
+
+
+================== isi =============================
+
+Educational Content for a Spoof Text Website
+1. Understanding Spoof Text ====================== FITUR 1
+Definition
+A spoof text is a type of narrative text that entertains readers by telling a story with an unexpected twist at the end. The twist usually adds humor or irony, making the story engaging and surprising.
+
+Structure of Spoof Text
+
+Orientation
+Introduces the characters, setting, and time of the story.
+Events
+Describes a series of events or actions taken by the characters.
+Twist
+The story ends with an unpredictable, funny, or ironic conclusion.
+Language Features
+
+Written in the past tense, as it narrates events that have already happened.
+Uses time connectives such as then, after that, suddenly.
+Incorporates dialogues (direct or indirect speech) to make the story engaging.
+Includes elements of humor or irony, especially in the twist.
+
+2. Examples of Spoof Text====================== FITUR 2
+Example 1: "The Talking Dog"
+Orientation:
+One day, a man went to a pet shop looking for a unique pet.
+Events:
+The shop owner showed him a dog and said, "This dog can talk!" The man was skeptical, but the owner insisted. "Ask him something!" So, the man asked the dog, "What's your name?" To his surprise, the dog replied, "Rex."
+Twist:
+The man bought the dog for $10,000. When he got home, the dog whispered, "I can't believe he fell for that!"
+
+Explanation:
+The twist adds humor by revealing the dog’s cunning nature, fooling both the shop owner and the buyer.
+
+Example 2: "The Perfect Excuse"
+Orientation:
+A student was late for school, and his teacher asked for an explanation.
+Events:
+The student replied, "I'm sorry, but I was helping an old lady cross the street." The teacher was pleased with his kindness.
+Twist:
+The student continued, "But she didn't want to cross, so I had to convince her for an hour!"
+
+Explanation:
+The story humorously shows how the student's "good deed" became an excuse for being late.
+
+Example 3: "The Lucky Wallet"
+Orientation:
+A man found a wallet on the street filled with money.
+Events:
+He was thrilled and thought about keeping it. Just as he decided, he heard someone shouting, "I lost my wallet!" The man quickly returned it, expecting a reward.
+Twist:
+The owner smiled and said, "Thank you! I was hoping someone would return my wallet... without taking the fake money inside."
+
+Explanation:
+The twist surprises readers by revealing that the money in the wallet was fake, leaving the man disappointed.
+
+3. Interactive Quiz (5 Questions)=======FITUR 3
+What is the main purpose of a spoof text?
+a. To provide scientific knowledge
+b. To entertain readers with humor and a twist
+c. To describe a historical event
+d. To explain a technical process
+
+What is the structure of a spoof text?
+a. Orientation - Problem - Solution
+b. Orientation - Events - Twist
+c. Orientation - Resolution - Moral
+d. Orientation - Explanation - Facts
+
+Which tense is commonly used in a spoof text?
+a. Present tense
+b. Past tense
+c. Future tense
+d. Continuous tense
+
+What makes the twist in a spoof text special?
+a. It is predictable and logical.
+b. It is unexpected and humorous.
+c. It teaches a moral lesson.
+d. It describes a serious situation.
+
+Identify the time connective in this sentence:
+"After that, he went to the store."
+a. After that
+b. He went
+c. To the store
+d. None of the above
+
+
+============= catatan===================
+
+
+lalu ada fitur tambahan seperti :
+
+- materi bisa di donglod
+- video materi( paling buat .kata bapak itu g boleh ngambil)
+- forum diskusi
+
+

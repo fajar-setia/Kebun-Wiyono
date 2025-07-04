@@ -1,0 +1,95 @@
+akun admin :	kebunwiyono30@gmail.com
+		KebunWiyono_10
+
+akun user : 	test@gmail.com
+		test1234
+
+		fajarsetiapambudi@gmail.com
+		fajar123
+
+QUERY DATABASE :
+
+
+CREATE TABLE admin (
+  id_admin INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  role ENUM('admin') NOT NULL DEFAULT 'admin'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE pengguna (
+  id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  reset_token VARCHAR(255) DEFAULT NULL,
+  reset_token_expires_at DATETIME DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE produk (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nama VARCHAR(100) NOT NULL,
+    deskripsi TEXT,
+    harga DECIMAL(10, 2) NOT NULL,
+    gambar VARCHAR(255),
+    kategori VARCHAR(50),
+    tanggal_dibuat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE keranjang (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    produk_id INT NOT NULL,
+    jumlah INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (user_id) REFERENCES pengguna(id),
+    FOREIGN KEY (produk_id) REFERENCES produk(id)
+);
+
+ALTER TABLE pengguna 
+ADD COLUMN nama_lengkap VARCHAR(100) AFTER username,
+ADD COLUMN telepon VARCHAR(15),
+ADD COLUMN tanggal_lahir DATE,
+ADD COLUMN jenis_kelamin CHAR(1),
+ADD COLUMN alamat TEXT,
+ADD COLUMN kota VARCHAR(50),
+ADD COLUMN provinsi VARCHAR(50),
+ADD COLUMN kode_pos VARCHAR(10),
+ADD COLUMN foto_profil VARCHAR(255),
+ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+CREATE TABLE pesanan (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    nomor_pesanan VARCHAR(20) NOT NULL,
+    tanggal_pesanan DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('menunggu', 'diproses', 'dikirim', 'selesai', 'dibatalkan') DEFAULT 'menunggu',
+    total_harga DECIMAL(12,2) NOT NULL,
+    alamat_pengiriman TEXT,
+    catatan TEXT,
+    metode_pembayaran VARCHAR(50),
+    FOREIGN KEY (user_id) REFERENCES pengguna(id) ON DELETE CASCADE
+);
+
+
+catatan : 
+
+tgl 19/06/2025 19:56
+bagian problem
+- ada problem di bagian total_harga dibgian pesanan user dan di pesanan admin
+  tetapi sudah di perbaiki
+- dibagian user avatar di halaman admin terdapat kesalahan, yaitu ukuran avarar yang berubah ubah seesuai nama user (sudah di perbaiki)
+- bagian cetak pesanan di admin masih belum di kerjakan/ masih dalam tahap proses
+- bagian tampilan lupa password dan lanjutannya tampilan masih belum di perbaiki
+- dibagian edit produk terdapat kesalahan ketika menggunakan format json banyak error kemudian menggunakan format manual dan mendirect menggunakan java script, dan menempatkan parameter nya yang sesuai di panggil
+- dibagian produk tombol lihat produk masih dalam tahap pembuatan,
+
+bagian yang dibuat pada tanggal ini 
+- pembuatan halaman edit produk di bagian panel admin
+
+
+
+
