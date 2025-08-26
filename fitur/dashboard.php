@@ -12,9 +12,16 @@ if (!isset($_SESSION['admin_id'])) {
 $resultTotal = mysqli_query($conn, "SELECT COUNT(*) as total FROM pesanan");
 $totalOrders = mysqli_fetch_assoc($resultTotal)['total'];
 
-// Total Pendapatan Hari Ini
-$resultRevenue = mysqli_query($conn, "SELECT SUM(total_harga) as total FROM pesanan WHERE DATE(tanggal_pesanan) = CURDATE()");
-$totalRevenue = mysqli_fetch_assoc($resultRevenue)['total'] ?? 0;
+// Total Pendapatan Hari Ini online
+$resultRevenueOnline = mysqli_query($conn, "SELECT SUM(total_harga) as total FROM pesanan WHERE DATE(tanggal_pesanan) = CURDATE()");
+$totalRevenueOnline = mysqli_fetch_assoc($resultRevenueOnline)['total'] ?? 0;
+
+//total pendapatan hari ini offline
+$resultRevenueOffline = mysqli_query($conn, "SELECT SUM(total_harga) as total 
+                                      FROM pesanan 
+                                      WHERE DATE(tanggal_pesanan) = CURDATE() 
+                                      AND sumber_transaksi = 'offline'");
+$totalRevenueOffline = mysqli_fetch_assoc($resultRevenueOffline)['total'] ?? 0;
 
 // Pesanan Pending
 $resultPending = mysqli_query($conn, "SELECT COUNT(*) as total FROM pesanan WHERE status = 'pending'");
@@ -134,10 +141,10 @@ if ($totalDetailPesanan > 0) {
         ORDER BY total_sold DESC
         LIMIT 5
     ");
-    
+
     while ($row = mysqli_fetch_assoc($topProductsQuery)) {
         $topProducts[] = [
-           'name' => $row['nama_produk'],
+            'name' => $row['nama_produk'],
             'sold' => (int)$row['total_sold'],
             'revenue' => (int)$row['revenue']
         ];
@@ -160,11 +167,11 @@ if ($totalDetailPesanan > 0) {
         ORDER BY estimated_sold DESC, revenue DESC
         LIMIT 5
     ");
-    
+
     if (mysqli_num_rows($alternativeQuery) > 0) {
         while ($row = mysqli_fetch_assoc($alternativeQuery)) {
             $topProducts[] = [
-               'name' => $row['nama_produk'],
+                'name' => $row['nama_produk'],
                 'sold' => (int)$row['estimated_sold'],
                 'revenue' => (int)$row['revenue'] ?? 0
             ];
@@ -181,10 +188,10 @@ if ($totalDetailPesanan > 0) {
             ORDER BY p.harga DESC, p.nama_produk ASC
             LIMIT 5
         ");
-        
+
         while ($row = mysqli_fetch_assoc($fallbackQuery)) {
             $topProducts[] = [
-               'name' => $row['nama_produk'],
+                'name' => $row['nama_produk'],
                 'sold' => (int)$row['estimated_sold'],
                 'revenue' => (int)$row['harga'] * (int)$row['estimated_sold']
             ];
@@ -221,6 +228,7 @@ if ($totalDetailPesanan > 0) {
         <ul class="nav flex-column sidebar-menu">
             <li class="nav-item "><a href="#" class="nav-link text-white active"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
             <li class="nav-item"><a href="proses_tambah_produk.php" class="nav-link text-white"><i class="fas fa-leaf me-2"></i>Produk</a></li>
+            <li class="nav-item"><a href="digitalisasi_Pembukuan_offline.php" class="nav-link text-white"><i class="fas fa-book me-2"></i>Pembukuan Offline</a></li>
             <li class="nav-item"><a href="kategori.php" class="nav-link text-white"><i class="fas fa-tags me-2"></i>Kategori</a></li>
             <li class="nav-item">
                 <a href="pesanan.php" class="nav-link text-white">
@@ -261,8 +269,23 @@ if ($totalDetailPesanan > 0) {
             <div class="stat-card success">
                 <div class="stat-header">
                     <div>
-                        <div class="stat-value" id="totalRevenue">Rp 0</div>
-                        <div class="stat-label">Pendapatan Hari Ini</div>
+                        <div class="stat-value" id="totalRevenueOnline">Rp 0</div>
+                        <div class="stat-label">Pendapatan Hari Ini Online</div>
+                        <div class="stat-change positive">
+                            <i class="fas fa-calendar-day me-1"></i><?= date('d M Y') ?>
+                        </div>
+                    </div>
+                    <div class="stat-icon success">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card success">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-value" id="totalRevenueOffline">Rp 0</div>
+                        <div class="stat-label">Pendapatan Hari Ini Offline</div>
                         <div class="stat-change positive">
                             <i class="fas fa-calendar-day me-1"></i><?= date('d M Y') ?>
                         </div>
@@ -386,7 +409,8 @@ if ($totalDetailPesanan > 0) {
         const dashboardData = {
             stats: {
                 totalOrders: <?= $totalOrders ?>,
-                totalRevenue: <?= $totalRevenue ?>,
+                totalRevenueOnline: <?= $totalRevenueOnline ?>,
+                totalRevenueOffline:<?= $totalRevenueOffline?>,
                 pendingOrders: <?= $pendingOrders ?>,
                 totalProducts: <?= $totalProducts ?>
             },
@@ -421,8 +445,10 @@ if ($totalDetailPesanan > 0) {
             animateCounter('totalProducts', dashboardData.stats.totalProducts);
 
             // Format revenue
-            document.getElementById('totalRevenue').textContent =
-                'Rp ' + dashboardData.stats.totalRevenue.toLocaleString('id-ID');
+            document.getElementById('totalRevenueOnline').textContent =
+                'Rp ' + dashboardData.stats.totalRevenueOnline.toLocaleString('id-ID');
+            document.getElementById('totalRevenueOffline').textContent =
+                'Rp ' + dashboardData.stats.totalRevenueOffline.toLocaleString('id-ID');
         }
 
 

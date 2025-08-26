@@ -168,6 +168,7 @@ $kategori_result = $conn->query("SELECT * FROM kategori ORDER BY nama_kategori")
         <ul class="nav flex-column sidebar-menu">
             <li class="nav-item "><a href="dashboard.php" class="nav-link text-white "><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
             <li class="nav-item"><a href="proses_tambah_produk.php" class="nav-link text-white active"><i class="fas fa-leaf me-2"></i>Produk</a></li>
+            <li class="nav-item"><a href="digitalisasi_Pembukuan_offline.php" class="nav-link text-white"><i class="fas fa-book me-2"></i>Pembukuan Offline</a></li>
             <li class="nav-item"><a href="kategori.php" class="nav-link text-white"><i class="fas fa-tags me-2"></i>Kategori</a></li>
             <li class="nav-item">
                 <a href="pesanan.php" class="nav-link text-white">

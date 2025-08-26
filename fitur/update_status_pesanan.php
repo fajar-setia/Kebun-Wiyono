@@ -34,23 +34,23 @@ if (!$pesanan) {
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $new_status = mysqli_real_escape_string($conn, $_POST['status']);
+    $new_status    = mysqli_real_escape_string($conn, $_POST['status']);
     $catatan_admin = mysqli_real_escape_string($conn, $_POST['catatan_admin']);
     
     $update_query = "UPDATE pesanan SET 
-                    status = '$new_status',
-                    catatan_admin = '$catatan_admin',
-                    tanggal_pesanan = NOW()
-                    WHERE id = $pesanan_id";
+                        status = '$new_status',
+                        catatan_admin = '$catatan_admin'
+                     WHERE id = $pesanan_id";
     
     if (mysqli_query($conn, $update_query)) {
         $_SESSION['success'] = "Status pesanan berhasil diperbarui!";
         header("Location: pesanan.php");
         exit;
     } else {
-        $_SESSION['error'] = "Gagal memperbarui status pesanan!";
+        $_SESSION['error'] = "Gagal memperbarui status pesanan! " . mysqli_error($conn);
     }
 }
+
 
 $status_options = [
     'Menunggu Pembayaran',
@@ -73,6 +73,7 @@ $status_options = [
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    
     <div class="container mt-4">
         <div class="row justify-content-center">
             <div class="col-md-8">

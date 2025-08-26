@@ -4,14 +4,14 @@ include '../config.php';
 
 // Pastikan user sudah login
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../login.php");
-    exit();
+  header("Location: ../index.php");
+  exit();
 }
 
 // Ambil ID pesanan dari URL
 if (!isset($_GET['id']) || empty($_GET['id'])) {
-    header("Location: pesananSaya.php");
-    exit();
+  header("Location: pesananSaya.php");
+  exit();
 }
 
 $pesanan_id = (int)$_GET['id'];
@@ -29,8 +29,8 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    header("Location: pesananSaya.php");
-    exit();
+  header("Location: pesananSaya.php");
+  exit();
 }
 
 $pesanan = $result->fetch_assoc();
@@ -48,28 +48,49 @@ $items_result = $stmt_items->get_result();
 
 $items = [];
 while ($row = $items_result->fetch_assoc()) {
-    $items[] = $row;
+  $items[] = $row;
 }
 
-// Status tracking data
-$status_steps = [
-    'pending' => ['label' => 'Pesanan Diterima', 'icon' => 'fas fa-clipboard-check', 'active' => false],
-    'diproses' => ['label' => 'Sedang Diproses', 'icon' => 'fas fa-cogs', 'active' => false],
-    'dikirim' => ['label' => 'Sedang Dikirim', 'icon' => 'fas fa-truck', 'active' => false],
-    'selesai' => ['label' => 'Pesanan Selesai', 'icon' => 'fas fa-check-circle', 'active' => false]
+// **UPDATED LOGIC: Mapping status untuk user display**
+$mapping = [
+  'Menunggu Pembayaran' => 'diproses',
+  'Menunggu Verifikasi' => 'diproses',
+  'Dikonfirmasi'        => 'diproses',
+  'Diproses'            => 'diproses',
+  'Dikirim'             => 'dikirim',
+  'Selesai'             => 'diterima', // **KUNCI: Admin set "Selesai" tapi user lihat "diterima"**
+  'Dibatalkan'          => 'dibatalkan'
 ];
 
-// Set active status
-$current_status = $pesanan['status'];
-$status_order = ['pending', 'diproses', 'dikirim', 'selesai'];
-$current_index = array_search($current_status, $status_order);
+// Cek apakah user sudah konfirmasi pesanan diterima
+$user_confirmed = ($pesanan['konfirmasi_user'] == 1); // Asumsi ada kolom konfirmasi_user
 
-if ($current_status !== 'dibatalkan') {
-    for ($i = 0; $i <= $current_index; $i++) {
-        if (isset($status_steps[$status_order[$i]])) {
-            $status_steps[$status_order[$i]]['active'] = true;
-        }
+// Jika user sudah konfirmasi, maka status menjadi selesai
+if ($user_confirmed && $pesanan['status'] === 'Selesai') {
+  $current_step = 'selesai';
+} else {
+  // Gunakan mapping normal
+  $current_step = $mapping[$pesanan['status']] ?? 'diproses';
+}
+
+// Status tracking data (4 step)
+$status_steps = [
+  'diproses' => ['label' => 'Sedang Diproses', 'icon' => 'fas fa-cogs', 'active' => false],
+  'dikirim'  => ['label' => 'Sedang Dikirim',  'icon' => 'fas fa-truck', 'active' => false],
+  'diterima' => ['label' => 'Pesanan Diterima', 'icon' => 'fas fa-clipboard-check', 'active' => false],
+  'selesai'  => ['label' => 'Pesanan Selesai', 'icon' => 'fas fa-check-circle', 'active' => false]
+];
+
+// Kalau tidak dibatalkan, aktifkan step sesuai urutan
+if ($current_step !== 'dibatalkan') {
+  $status_order = ['diproses', 'dikirim', 'diterima', 'selesai'];
+  $current_index = array_search($current_step, $status_order);
+
+  for ($i = 0; $i <= $current_index; $i++) {
+    if (isset($status_steps[$status_order[$i]])) {
+      $status_steps[$status_order[$i]]['active'] = true;
     }
+  }
 }
 
 ?>
@@ -114,7 +135,9 @@ if ($current_status !== 'dibatalkan') {
             <ul class="dropdown-menu dropdown-menu-end">
               <li><a class="dropdown-item" href="profile.php">Profil Saya</a></li>
               <li><a class="dropdown-item" href="pesananSaya.php">Pesanan Saya</a></li>
-              <li><hr class="dropdown-divider"></li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
               <li><a class="dropdown-item" href="../logout.php">Logout</a></li>
             </ul>
           </li>
@@ -136,29 +159,38 @@ if ($current_status !== 'dibatalkan') {
         </div>
         <div>
           <?php
+          // **UPDATED: Status display logic untuk user**
           $status_class = '';
           $status_text = '';
-          switch($pesanan['status']) {
-            case 'pending':
-              $status_class = 'status-pending';
-              $status_text = 'Menunggu Konfirmasi';
-              break;
-            case 'diproses':
-              $status_class = 'status-diproses';
-              $status_text = 'Sedang Diproses';
-              break;
-            case 'dikirim':
-              $status_class = 'status-dikirim';
-              $status_text = 'Sedang Dikirim';
-              break;
-            case 'selesai':
-              $status_class = 'status-selesai';
-              $status_text = 'Pesanan Selesai';
-              break;
-            case 'dibatalkan':
-              $status_class = 'status-dibatalkan';
-              $status_text = 'Dibatalkan';
-              break;
+          
+          if ($pesanan['status'] === 'Selesai' && !$user_confirmed) {
+            // Admin sudah set selesai tapi user belum konfirmasi
+            $status_class = 'status-dikirim';
+            $status_text = 'Pesanan Diterima - Menunggu Konfirmasi';
+          } elseif ($pesanan['status'] === 'Selesai' && $user_confirmed) {
+            // User sudah konfirmasi
+            $status_class = 'status-selesai';
+            $status_text = 'Pesanan Selesai';
+          } else {
+            // Status normal lainnya
+            switch ($pesanan['status']) {
+              case 'pending':
+                $status_class = 'status-pending';
+                $status_text = 'Menunggu Konfirmasi';
+                break;
+              case 'diproses':
+                $status_class = 'status-diproses';
+                $status_text = 'Sedang Diproses';
+                break;
+              case 'dikirim':
+                $status_class = 'status-dikirim';
+                $status_text = 'Sedang Dikirim';
+                break;
+              case 'dibatalkan':
+                $status_class = 'status-dibatalkan';
+                $status_text = 'Dibatalkan';
+                break;
+            }
           }
           ?>
           <span class="status-badge <?= $status_class ?>"><?= $status_text ?></span>
@@ -178,19 +210,34 @@ if ($current_status !== 'dibatalkan') {
     <?php if ($pesanan['status'] !== 'dibatalkan'): ?>
       <div class="tracking-container">
         <h5><i class="fas fa-route me-2"></i>Status Pesanan</h5>
-        <div class="tracking-steps">
+        <div class="tracking-steps" style="display:flex; gap:40px;">
           <?php foreach ($status_steps as $status => $step): ?>
-            <div class="tracking-step">
-              <div class="step-icon <?= $step['active'] ? 'active' : '' ?>">
+            <div class="tracking-step" style="text-align:center;">
+              <div class="step-icon" style="font-size:28px; color:<?= $step['active'] ? 'green' : '#ccc' ?>;">
                 <i class="<?= $step['icon'] ?>"></i>
               </div>
-              <div class="step-label <?= $step['active'] ? 'active' : '' ?>">
+              <div class="step-label" style="margin-top:5px; font-weight:<?= $step['active'] ? 'bold' : 'normal' ?>; color:<?= $step['active'] ? 'green' : '#666' ?>;">
                 <?= $step['label'] ?>
               </div>
             </div>
           <?php endforeach; ?>
         </div>
       </div>
+    <?php endif; ?>
+
+    <!-- **UPDATED: Tombol Konfirmasi** -->
+    <?php if ($pesanan['status'] === 'Selesai' && !$user_confirmed): ?>
+      <div class="alert alert-success" role="alert">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>Pesanan Anda telah sampai!</strong> Silakan konfirmasi bahwa Anda telah menerima pesanan ini.
+      </div>
+      
+      <form method="POST" action="konfirmasiPesananSelesai.php" style="display:inline;">
+        <input type="hidden" name="id" value="<?= $pesanan['id'] ?>">
+        <button type="submit" class="btn-custom btn-primary-custom">
+          <i class="fas fa-check me-2"></i>Konfirmasi Pesanan Diterima
+        </button>
+      </form>
     <?php endif; ?>
 
     <div class="row">
@@ -200,9 +247,9 @@ if ($current_status !== 'dibatalkan') {
           <h5><i class="fas fa-box me-2"></i>Detail Produk</h5>
           <?php foreach ($items as $item): ?>
             <div class="product-item">
-              <img src="../fitur/gambarProduk/<?= $item['gambar'] ?>" 
-                   class="product-img" 
-                   alt="<?= $item['nama_produk'] ?>">
+              <img src="../fitur/gambarProduk/<?= $item['gambar'] ?>"
+                class="product-img"
+                alt="<?= $item['nama_produk'] ?>">
               <div class="product-info">
                 <div class="product-name"><?= $item['nama_produk'] ?></div>
                 <div class="product-desc"><?= substr($item['deskripsi'], 0, 100) ?>...</div>
@@ -219,6 +266,12 @@ if ($current_status !== 'dibatalkan') {
             </div>
           <?php endforeach; ?>
         </div>
+        <?php if (!empty($pesanan['catatan_admin'])): ?>
+          <div class="info-section">
+            <h5><i class="fas fa-sticky-note me-2"></i>Catatan Admin</h5>
+            <p class="mb-0"><?= nl2br(htmlspecialchars($pesanan['catatan_admin'])) ?></p>
+          </div>
+        <?php endif; ?>
       </div>
 
       <!-- Info Pengiriman & Kontak -->
@@ -266,19 +319,13 @@ if ($current_status !== 'dibatalkan') {
       <a href="pesanan-saya.php" class="btn-custom btn-outline-custom">
         <i class="fas fa-arrow-left me-2"></i>Kembali
       </a>
-      
+
       <?php if ($pesanan['status'] === 'pending'): ?>
         <button class="btn-custom btn-danger-custom" onclick="cancelOrder(<?= $pesanan['id'] ?>)">
           <i class="fas fa-times me-2"></i>Batalkan Pesanan
         </button>
       <?php endif; ?>
-      
-      <?php if ($pesanan['status'] === 'selesai'): ?>
-        <button class="btn-custom btn-primary-custom" onclick="showReviewModal(<?= $pesanan['id'] ?>)">
-          <i class="fas fa-star me-2"></i>Beri Ulasan
-        </button>
-      <?php endif; ?>
-      
+
       <button class="btn-custom btn-primary-custom" onclick="printOrder()">
         <i class="fas fa-print me-2"></i>Cetak
       </button>
@@ -290,27 +337,27 @@ if ($current_status !== 'dibatalkan') {
     function cancelOrder(orderId) {
       if (confirm('Apakah Anda yakin ingin membatalkan pesanan ini?')) {
         fetch('cancelOrder.php', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            order_id: orderId
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              order_id: orderId
+            })
           })
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            alert('Pesanan berhasil dibatalkan');
-            location.reload();
-          } else {
-            alert('Gagal membatalkan pesanan: ' + data.message);
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          alert('Terjadi kesalahan saat membatalkan pesanan');
-        });
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              alert('Pesanan berhasil dibatalkan');
+              location.reload();
+            } else {
+              alert('Gagal membatalkan pesanan: ' + data.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat membatalkan pesanan');
+          });
       }
     }
 

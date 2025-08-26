@@ -1,39 +1,35 @@
 <?php
-require_once 'vendor/autoload.php';
 session_start();
+require 'config.php'; // koneksi database + setting OAuth GitHub
 
-$provider = new League\OAuth2\Client\Provider\Github([
-    'clientId'     => 'Ov23liDLVYMZu75l7hlB',
-    'clientSecret' => 'aa02e2e595b47bed19a5a006bb6c32599ee085df',
-    'redirectUri'  => 'https://kebunkita.shop/github-callback.php',
-]);
+// Ambil data user dari GitHub API (misalnya sudah dapat di $githubUser)
+$github_id = $githubUser['github_id'];
+$nama_lengkap = $githubUser['nama_lengkap'] ?? $githubUser['login']; // kalau name kosong pakai login
+$username = "githubuser";
 
-// Validasi state
-if (!isset($_GET['state']) || $_GET['state'] !== $_SESSION['oauth2state']) {
-    unset($_SESSION['oauth2state']);
-    exit('Invalid OAuth state.');
-}
+// Cek apakah user sudah ada di DB
+$stmt = $pdo->prepare("SELECT * FROM pengguna WHERE facebook_id = ?");
+$stmt->execute([$github_id]);
+$user = $stmt->fetch();
 
-if (isset($_GET['code'])) {
-    try {
-        $token = $provider->getAccessToken('authorization_code', [
-            'code' => $_GET['code']
-        ]);
-
-        $user = $provider->getResourceOwner($token);
-        $githubData = $user->toArray();
-
-        $_SESSION['user_name'] = $githubData['name'] ?? $githubData['login'];
-        $_SESSION['user_email'] = $githubData['email'] ?? 'email@unknown.com';
-
-        // ✅ Redirect ke halaman user
-        header("Location: user.php");
-        exit();
-
-    } catch (Exception $e) {
-        echo "GitHub Login Failed: " . $e->getMessage();
-        exit();
-    }
+if ($user) {
+    // Kalau sudah ada, langsung login
+    $_SESSION['user_id'] = $user['id'];
+    $_SESSION['username'] = $user['username'];
+    $_SESSION['nama_lengkap'] = $user['nama_lengkap'];
 } else {
-    echo "Code not found in callback URL";
+    // Kalau belum ada, insert user baru
+    $stmt = $pdo->prepare("INSERT INTO pengguna (username, nama_lengkap, facebook_id) VALUES (?, ?, ?)");
+    $stmt->execute([$username, $nama_lengkap, $facebook_id]);
+
+    $newId = $pdo->lastInsertId();
+
+    $_SESSION['user_id'] = $newId;
+    $_SESSION['username'] = $username;
+    $_SESSION['nama_lengkap'] = $nama_lengkap;
 }
+
+// Setelah login sukses → redirect ke halaman user.php
+header("Location: user.php");
+exit;
+?>
