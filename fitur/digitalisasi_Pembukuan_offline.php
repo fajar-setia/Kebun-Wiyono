@@ -33,7 +33,7 @@ if (isset($_GET['delete'])) {
 }
 
 // Ambil daftar produk
-$produk = $pdo->query("SELECT id, nama_produk, harga FROM produk ORDER BY nama_produk ASC")
+$produk = $pdo->query("SELECT id, nama_produk FROM produk ORDER BY nama_produk ASC")
   ->fetchAll(PDO::FETCH_ASSOC);
 
 // Simpan pesanan
@@ -44,43 +44,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $catatan  = trim($_POST['catatan'] ?? '');
   $metode   = trim($_POST['metode_pembayaran'] ?? '');
   $produkId = isset($_POST['produk_id']) ? (int) $_POST['produk_id'] : null;
-  $qty      = isset($_POST['quantity']) ? max(1, (int) $_POST['quantity']) : 1;
+  $berat    = isset($_POST['berat']) ? (float) $_POST['berat'] : 0;
+  $harga    = isset($_POST['harga']) ? (float) $_POST['harga'] : 0;
 
-  if ($nama === '' || $telepon === '' || $metode === '' || !$produkId) {
+  if ($nama === '' || $telepon === '' || $metode === '' || !$produkId || $berat <= 0 || $harga <= 0) {
     $_SESSION['err'] = "Lengkapi semua field wajib & pilih produk.";
     header("Location: " . $_SERVER['REQUEST_URI']);
     exit;
   }
 
-  // Ambil harga produk
-  $ps = $pdo->prepare("SELECT nama_produk,harga FROM produk WHERE id=:id");
-  $ps->execute([':id' => $produkId]);
-  $prod = $ps->fetch(PDO::FETCH_ASSOC);
-  if (!$prod) {
-    $_SESSION['err'] = "Produk tidak ditemukan.";
-    header("Location: " . $_SERVER['REQUEST_URI']);
-    exit;
-  }
-
-  $hargaSatuan = (float)$prod['harga'];
-  $subtotal    = $hargaSatuan * $qty;
-  $nomor       = generate_order_no($pdo);
+  $subtotal = $harga * $berat;
+  $nomor    = generate_order_no($pdo);
 
   try {
     $pdo->beginTransaction();
 
     // Insert ke pesanan (sementara total 0)
     $ins = $pdo->prepare("
-            INSERT INTO pesanan (
-              user_id, nomor_pesanan, nama_penerima, telepon, alamat, catatan,
-              metode_pembayaran, total_harga, total_bayar,
-              status, sumber_transaksi, tanggal_pesanan
-            ) VALUES (
-              :user_id, :nomor, :nama, :telp, :alamat, :catatan,
-              :metode, 0, 0,
-              :status, 'offline', NOW()
-            )
-        ");
+      INSERT INTO pesanan (
+        user_id, nomor_pesanan, nama_penerima, telepon, alamat, catatan,
+        metode_pembayaran, total_harga, total_bayar,
+        status, sumber_transaksi, tanggal_pesanan
+      ) VALUES (
+        :user_id, :nomor, :nama, :telp, :alamat, :catatan,
+        :metode, 0, 0,
+        :status, 'offline', NOW()
+      )
+    ");
     $ins->execute([
       ':user_id' => 1,
       ':nomor' => $nomor,
@@ -93,16 +83,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ]);
     $pesananId = $pdo->lastInsertId();
 
-    // Insert item produk
+    // Insert item produk (pakai berat + harga manual)
     $insItem = $pdo->prepare("
-            INSERT INTO pesanan_item (pesanan_id, produk_id, quantity, harga, subtotal)
-            VALUES (:pid,:prod,:qty,:harga,:sub)
-        ");
+      INSERT INTO pesanan_item (pesanan_id, produk_id, berat, harga, subtotal)
+      VALUES (:pid,:prod,:berat,:harga,:sub)
+    ");
     $insItem->execute([
       ':pid' => $pesananId,
       ':prod' => $produkId,
-      ':qty' => $qty,
-      ':harga' => $hargaSatuan,
+      ':berat' => $berat,
+      ':harga' => $harga,
       ':sub' => $subtotal
     ]);
 
@@ -123,7 +113,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Ambil daftar pesanan offline + itemnya
 $pesanan = $pdo->query("
-    SELECT p.*, GROUP_CONCAT(CONCAT(pi.quantity,'x ',pr.nama_produk) SEPARATOR ', ') AS items
+    SELECT 
+      p.*, 
+      GROUP_CONCAT(DISTINCT pr.nama_produk SEPARATOR ', ') AS items,
+      COALESCE(SUM(pi.berat),0) AS total_berat
     FROM pesanan p
     LEFT JOIN pesanan_item pi ON pi.pesanan_id=p.id
     LEFT JOIN produk pr ON pr.id=pi.produk_id
@@ -262,26 +255,32 @@ $total_notifications = $totalOrders + $pendingOrders;
               <option value="">-- Pilih Produk --</option>
               <?php foreach ($produk as $p): ?>
                 <option value="<?= $p['id'] ?>">
-                  <?= htmlspecialchars($p['nama_produk']) ?> — Rp <?= number_format($p['harga'], 0, ',', '.') ?>
+                  <?= htmlspecialchars($p['nama_produk']) ?>
                 </option>
               <?php endforeach; ?>
             </select>
           </div>
 
           <div class="form-group">
-            <label for="quantity">Qty <span class="required">*</span></label>
-            <input type="number" id="quantity" name="quantity" min="1" value="1" required>
+            <label for="berat">Berat (Kg) <span class="required">*</span></label>
+            <input type="number" id="berat" name="berat" min="0.1" step="0.01" value="1" required>
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="metode_pembayaran">Metode Pembayaran <span class="required">*</span></label>
-          <select id="metode_pembayaran" name="metode_pembayaran" required>
-            <option value="">-- Pilih Metode --</option>
-            <option>Cash</option>
-            <option>Transfer</option>
-            <option>QRIS</option>
-          </select>
+        <div class="row">
+          <div class="form-group">
+            <label for="metode_pembayaran">Metode Pembayaran <span class="required">*</span></label>
+            <select id="metode_pembayaran" name="metode_pembayaran" required>
+              <option value="">-- Pilih Metode --</option>
+              <option>Cash</option>
+              <option>Transfer</option>
+              <option>QRIS</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="harga">Harga per Kg (Rp) <span class="required">*</span></label>
+            <input type="number" id="harga" name="harga" min="100" step="100" required>
+          </div>
         </div>
 
         <div class="form-group">
@@ -306,7 +305,7 @@ $total_notifications = $totalOrders + $pendingOrders;
             <th>Telepon</th>
             <th>Items</th>
             <th>Total Harga</th>
-            <th>Total Bayar</th>
+            <th>Total Berat</th>
             <th>Status</th>
             <th>Tanggal</th>
             <th>Aksi</th>
@@ -324,7 +323,7 @@ $total_notifications = $totalOrders + $pendingOrders;
                 <td><?= htmlspecialchars($row['telepon']) ?></td>
                 <td><?= htmlspecialchars($row['items']) ?></td>
                 <td>Rp <?= number_format($row['total_harga'], 0, ',', '.') ?></td>
-                <td><b>Rp <?= number_format($row['total_bayar'], 0, ',', '.') ?></b></td>
+                <td><?= number_format($row['total_berat'], 2, ',', '.') ?> Kg</td>
                 <td><?= htmlspecialchars($row['status']) ?></td>
                 <td><?= htmlspecialchars($row['tanggal_pesanan']) ?></td>
                 <td class="actions"><a href="?delete=<?= $row['id'] ?>" onclick="return confirm('Hapus pesanan ini?')">Hapus</a></td>

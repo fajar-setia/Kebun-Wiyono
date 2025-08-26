@@ -126,28 +126,35 @@ while ($row = mysqli_fetch_assoc($recentOrdersQuery)) {
 $topProducts = [];
 
 // Debug: Cek apakah ada data di detail_pesanan
-$checkDetailPesanan = mysqli_query($conn, "SELECT COUNT(*) as total FROM detail_pesanan");
+$checkDetailPesanan = mysqli_query($conn, "SELECT COUNT(*) as total FROM pesanan_item");
 $totalDetailPesanan = mysqli_fetch_assoc($checkDetailPesanan)['total'];
 
 if ($totalDetailPesanan > 0) {
     // Query 1: Jika ada data detail_pesanan (query asli)
-    $topProductsQuery = mysqli_query($conn, "
-        SELECT p.nama_produk, SUM(dp.jumlah) as total_sold, SUM(dp.subtotal) as revenue
-        FROM detail_pesanan dp
-        JOIN produk p ON dp.produk_id = p.id
-        JOIN pesanan ps ON dp.pesanan_id = ps.id
+        $topProductsQuery = mysqli_query($conn, "
+        SELECT p.nama_produk, 
+               SUM(pi.quantity) as total_sold, 
+               SUM(pi.quantity * p.harga) as revenue,
+               p.harga
+        FROM pesanan_item pi
+        JOIN produk p ON pi.produk_id = p.id
+        JOIN pesanan ps ON pi.pesanan_id = ps.id
         WHERE ps.status != 'cancelled'
-        GROUP BY p.id, p.nama_produk
+        GROUP BY p.id, p.nama_produk, p.harga
+        HAVING total_sold > 0
         ORDER BY total_sold DESC
         LIMIT 5
     ");
 
-    while ($row = mysqli_fetch_assoc($topProductsQuery)) {
-        $topProducts[] = [
-            'name' => $row['nama_produk'],
-            'sold' => (int)$row['total_sold'],
-            'revenue' => (int)$row['revenue']
-        ];
+
+    if ($topProductsQuery && mysqli_num_rows($topProductsQuery) > 0) {
+        while ($row = mysqli_fetch_assoc($topProductsQuery)) {
+            $topProducts[] = [
+                'name' => $row['nama_produk'],
+                'sold' => (int)$row['total_sold'],
+                'revenue' => (int)$row['revenue']
+            ];
+        }
     }
 } else {
     // Query 2: Alternatif berdasarkan total_harga pesanan dan asumsi produk
@@ -179,13 +186,9 @@ if ($totalDetailPesanan > 0) {
     } else {
         // Query 3: Fallback - tampilkan produk berdasarkan data produk saja
         $fallbackQuery = mysqli_query($conn, "
-            SELECT p.nama_produk, p.harga, p.stok,
-                   CASE 
-                       WHEN p.stok > 0 THEN FLOOR(RAND() * 10) + 1
-                       ELSE 0 
-                   END as estimated_sold
+            SELECT p.nama_produk, p.stok as estimated_sold, (p.harga * p.stok) as revenue
             FROM produk p
-            ORDER BY p.harga DESC, p.nama_produk ASC
+            ORDER BY p.stok DESC, p.harga DESC
             LIMIT 5
         ");
 
@@ -410,7 +413,7 @@ if ($totalDetailPesanan > 0) {
             stats: {
                 totalOrders: <?= $totalOrders ?>,
                 totalRevenueOnline: <?= $totalRevenueOnline ?>,
-                totalRevenueOffline:<?= $totalRevenueOffline?>,
+                totalRevenueOffline: <?= $totalRevenueOffline ?>,
                 pendingOrders: <?= $pendingOrders ?>,
                 totalProducts: <?= $totalProducts ?>
             },
