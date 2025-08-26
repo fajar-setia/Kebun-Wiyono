@@ -132,18 +132,16 @@ $totalDetailPesanan = mysqli_fetch_assoc($checkDetailPesanan)['total'];
 if ($totalDetailPesanan > 0) {
     // Query 1: Jika ada data detail_pesanan (query asli)
         $topProductsQuery = mysqli_query($conn, "
-        SELECT p.nama_produk, 
-               SUM(pi.quantity) as total_sold, 
-               SUM(pi.quantity * p.harga) as revenue,
-               p.harga
-        FROM pesanan_item pi
-        JOIN produk p ON pi.produk_id = p.id
-        JOIN pesanan ps ON pi.pesanan_id = ps.id
-        WHERE ps.status != 'cancelled'
-        GROUP BY p.id, p.nama_produk, p.harga
-        HAVING total_sold > 0
-        ORDER BY total_sold DESC
-        LIMIT 5
+        SELECT pr.nama_produk,
+           SUM(pi.quantity) AS total_sold,
+           SUM(pi.subtotal) AS revenue
+    FROM pesanan_item pi
+    JOIN produk pr ON pi.produk_id = pr.id
+    JOIN pesanan p ON pi.pesanan_id = p.id
+    WHERE p.status != 'cancelled'
+    GROUP BY pr.id, pr.nama_produk
+    ORDER BY total_sold DESC
+    LIMIT 5
     ");
 
 

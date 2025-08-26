@@ -84,16 +84,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pesananId = $pdo->lastInsertId();
 
     // Insert item produk (pakai berat + harga manual)
+    $quantity = isset($_POST['quantity']) ? (int) $_POST['quantity'] : 1;
+
     $insItem = $pdo->prepare("
-      INSERT INTO pesanan_item (pesanan_id, produk_id, berat, harga, subtotal)
-      VALUES (:pid,:prod,:berat,:harga,:sub)
-    ");
+  INSERT INTO pesanan_item (pesanan_id, produk_id, berat, quantity, harga, subtotal)
+  VALUES (:pid, :prod, :berat, :qty, :harga, :sub)
+");
     $insItem->execute([
-      ':pid' => $pesananId,
-      ':prod' => $produkId,
+      ':pid'   => $pesananId,
+      ':prod'  => $produkId,
       ':berat' => $berat,
+      ':qty'   => $quantity,
       ':harga' => $harga,
-      ':sub' => $subtotal
+      ':sub'   => $subtotal
     ]);
 
     // Update total di pesanan
@@ -127,8 +130,13 @@ $pesanan = $pdo->query("
 
 // Statistik
 $st = $pdo->query("SELECT COUNT(*) total, COALESCE(SUM(total_bayar),0) pendapatan
+                   FROM pesanan WHERE sumber_transaksi='offline' AND DATE(tanggal_pesanan) = CURDATE() ")
+  ->fetch(PDO::FETCH_ASSOC);
+
+$AllTotal = $pdo->query("SELECT COUNT(*) total, COALESCE(SUM(total_bayar),0) pendapatan
                    FROM pesanan WHERE sumber_transaksi='offline'")
   ->fetch(PDO::FETCH_ASSOC);
+
 
 $resultPending = mysqli_query($conn, "SELECT COUNT(*) as total FROM pesanan WHERE status = 'pending'");
 $pendingOrders = mysqli_fetch_assoc($resultPending)['total'];
@@ -203,7 +211,7 @@ $total_notifications = $totalOrders + $pendingOrders;
         <div class="stat-header">
           <div>
             <div class="stat-value"><?= (int)$st['total'] ?></div>
-            <div class="stat-label">Total Pesanan</div>
+            <div class="stat-label">Total Pesanan hari ini</div>
             <div class="stat-change positive">
               <i class="fas fa-shopping-cart me-1"></i>pesanan
             </div>
@@ -224,6 +232,20 @@ $total_notifications = $totalOrders + $pendingOrders;
           </div>
           <div class="stat-icon primary">
             <i class="fas fa-money-bill-wave"></i>
+          </div>
+        </div>
+      </div>
+      <div class="stat-card primary">
+        <div class="stat-header">
+          <div>
+            <div class="stat-value"><?= (int)$AllTotal['total'] ?></div>
+            <div class="stat-label">Total semua Pesanan</div>
+            <div class="stat-change positive">
+              <i class="fas fa-shopping-cart me-1"></i>pesanan
+            </div>
+          </div>
+          <div class="stat-icon primary">
+            <i class="fas fa-shopping-cart"></i>
           </div>
         </div>
       </div>
@@ -280,6 +302,10 @@ $total_notifications = $totalOrders + $pendingOrders;
           <div class="form-group">
             <label for="harga">Harga per Kg (Rp) <span class="required">*</span></label>
             <input type="number" id="harga" name="harga" min="100" step="100" required>
+          </div>
+          <div class="form-group">
+            <label for="quantity">jumlah produk <span class="required">*</span></label>
+            <input type="number" id="harga" name="quantity" min="1" required>
           </div>
         </div>
 
